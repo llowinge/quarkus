@@ -7,6 +7,7 @@ import static org.testcontainers.containers.Db2Container.DB2_PORT;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.function.Supplier;
@@ -67,6 +68,7 @@ public class DB2DevServicesProcessor {
                             .withDatabaseName(effectiveDbName)
                             .withReuse(containerConfig.isReuse());
                     Labels.addDataSourceLabel(container, datasourceName);
+                    containerConfig.getVolumes().putIfAbsent(System.getProperty("java.io.tmpdir") + "/devservice-db2-database", "/database");
                     Volumes.addVolumes(container, containerConfig.getVolumes());
 
                     container.withEnv(containerConfig.getContainerEnv());
