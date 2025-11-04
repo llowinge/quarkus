@@ -224,19 +224,40 @@ class VertxHttpProcessor {
     void preinitializeRouter(CoreVertxBuildItem vertx, VertxHttpRecorder recorder,
             BuildProducer<InitialRouterBuildItem> initialRouter, BuildProducer<SyntheticBeanBuildItem> syntheticBeans) {
         // We need to initialize the routers that are exposed as synthetic beans in a separate build step to avoid cycles in the build chain
+        long startTime = System.nanoTime();
         RuntimeValue<Router> httpRouteRouter = recorder.initializeRouter(vertx.getVertx());
+        logger.info(
+                "lukas:recorder.initializeRouter(vertx.getVertx())#" + calculate(startTime, System.nanoTime()) + "#ms");
+        startTime = System.nanoTime();
         RuntimeValue<io.vertx.mutiny.ext.web.Router> mutinyRouter = recorder.createMutinyRouter(httpRouteRouter);
+        logger.info(
+                "lukas:recorder.createMutinyRouter(httpRouteRouter)#" + calculate(startTime, System.nanoTime()) + "#ms");
+        startTime = System.nanoTime();
         initialRouter.produce(new InitialRouterBuildItem(httpRouteRouter, mutinyRouter));
+        logger.info("lukas:initialRouter.produce(new InitialRouterBuildItem(httpRouteRouter, mutinyRouter))#"
+                + calculate(startTime, System.nanoTime()) + "#ms");
 
         // Also note that we need a client proxy to handle the use case where a bean also @Observes Router
+        startTime = System.nanoTime();
         syntheticBeans.produce(SyntheticBeanBuildItem.configure(Router.class)
                 .scope(BuiltinScope.APPLICATION.getInfo())
                 .setRuntimeInit()
                 .runtimeValue(httpRouteRouter).done());
+        logger.info("lukas:syntheticBeans.produce(SyntheticBeanBuildItem.configure(Router.class)#"
+                + calculate(startTime, System.nanoTime()) + "#ms");
+        startTime = System.nanoTime();
         syntheticBeans.produce(SyntheticBeanBuildItem.configure(io.vertx.mutiny.ext.web.Router.class)
                 .scope(BuiltinScope.APPLICATION.getInfo())
                 .setRuntimeInit()
                 .runtimeValue(mutinyRouter).done());
+        logger.info("lukas:syntheticBeans.produce(SyntheticBeanBuildItem.configure(io.vertx.mutiny.ext.web.Router.class)#"
+                + calculate(startTime, System.nanoTime()) + "#ms");
+    }
+
+    private double calculate(long startTime, long endTime) {
+        long durationNano = endTime - startTime;
+        double durationMs = (double) durationNano / 1_000_000;
+        return durationMs;
     }
 
     @BuildStep
