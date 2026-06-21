@@ -1,1 +1,2 @@
 io.quarkus.extest.runtime.TestHotReplacementSetup
+io.quarkus.extest.runtime.AggressiveScanHotReplacementSetup
