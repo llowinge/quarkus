@@ -35,11 +35,24 @@ public class ContinuousTestingJsonRPCService implements Consumer<ContinuousTesti
     public void accept(final ContinuousTestingSharedStateManager.State state) {
         LOG.info(
                 "[ContinuousTestingJsonRPCService] ACCEPT START [" + Thread.currentThread().getName() + "] state=" + state);
-        LOG.info("[ContinuousTestingJsonRPCService] ABOUT TO INVOKE [" + Thread.currentThread().getName()
-                + "] devui-continuous-testing_getResults");
-        final var results = DevConsoleManager.<TestRunResultsInterface> invoke("devui-continuous-testing_getResults");
-        LOG.info("[ContinuousTestingJsonRPCService] INVOKE RETURNED [" + Thread.currentThread().getName()
-                + "] results=" + (results != null ? "NOT NULL" : "NULL"));
+
+        // Don't invoke DevConsoleManager action if state is INITIAL_STATE (lastRun=-1).
+        // This happens during dev mode restart after shutdown task resets state.
+        // Invoking would fail with NoSuchElementException if BUILD phase hasn't registered actions yet.
+        // See https://github.com/apache/camel-quarkus/issues/8318
+        final TestRunResultsInterface results;
+        if (state.lastRun > 0) {
+            LOG.info("[ContinuousTestingJsonRPCService] ABOUT TO INVOKE [" + Thread.currentThread().getName()
+                    + "] devui-continuous-testing_getResults (lastRun=" + state.lastRun + ")");
+            results = DevConsoleManager.<TestRunResultsInterface> invoke("devui-continuous-testing_getResults");
+            LOG.info("[ContinuousTestingJsonRPCService] INVOKE RETURNED [" + Thread.currentThread().getName()
+                    + "] results=" + (results != null ? "NOT NULL" : "NULL"));
+        } else {
+            LOG.info("[ContinuousTestingJsonRPCService] SKIPPING INVOKE [" + Thread.currentThread().getName()
+                    + "] - state is INITIAL_STATE (lastRun=" + state.lastRun + "), no test data available");
+            results = null;
+        }
+
         final List<Item> passedTests = new LinkedList<>();
         final List<Item> failedTests = new LinkedList<>();
         final List<Item> skippedTests = new LinkedList<>();

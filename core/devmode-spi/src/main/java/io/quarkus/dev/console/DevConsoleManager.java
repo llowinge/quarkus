@@ -11,6 +11,7 @@ import java.util.function.Function;
 import java.util.logging.Logger;
 
 import io.quarkus.dev.spi.HotReplacementContext;
+import io.quarkus.dev.testing.ContinuousTestingSharedStateManager;
 
 public class DevConsoleManager {
     private static final Logger LOG = Logger.getLogger(DevConsoleManager.class.getName());
@@ -97,8 +98,6 @@ public class DevConsoleManager {
     }
 
     public static void close() {
-        LOG.info("[DevConsoleManager] CLOSE START [" + Thread.currentThread().getName() + "] - clearing "
-                + actions.size() + " actions, " + assistantActions.size() + " assistant actions");
         handler = null;
         templateInfo = null;
         hotReplacementContext = null;
@@ -106,7 +105,11 @@ public class DevConsoleManager {
         actions.clear();
         assistantActions.clear();
         globals.clear();
-        LOG.info("[DevConsoleManager] CLOSE COMPLETE [" + Thread.currentThread().getName() + "] - all actions cleared");
+
+        // Reset continuous testing state when dev mode restarts between test classes.
+        // This prevents immediate callback in RUNTIME_INIT from invoking actions before BUILD phase completes.
+        // See https://github.com/apache/camel-quarkus/issues/8318
+        ContinuousTestingSharedStateManager.reset();
     }
 
     /**
@@ -125,8 +128,6 @@ public class DevConsoleManager {
      *        Note that the type {@code T} must be a class shared by both the deployment and the runtime.
      */
     public static <T> void register(String name, Function<Map<String, String>, T> action) {
-        LOG.info("[DevConsoleManager] REGISTER action [" + Thread.currentThread().getName() + "] name='" + name
-                + "' (total actions: " + (actions.size() + 1) + ")");
         actions.put(name, action);
     }
 
@@ -140,8 +141,6 @@ public class DevConsoleManager {
      *        Note that the type {@code T} must be a class shared by both the deployment and the runtime.
      */
     public static <T> void register(String name, BiFunction<Object, Map<String, String>, T> action) {
-        LOG.info("[DevConsoleManager] REGISTER assistant action [" + Thread.currentThread().getName() + "] name='"
-                + name + "' (total: " + (assistantActions.size() + 1) + ")");
         assistantActions.put(name, action);
     }
 
@@ -165,17 +164,11 @@ public class DevConsoleManager {
      */
     @SuppressWarnings("unchecked")
     public static <T> T invoke(String name, Map<String, String> params) {
-        LOG.info("[DevConsoleManager] INVOKE [" + Thread.currentThread().getName() + "] name='" + name
-                + "' (total actions available: " + actions.size() + ", assistant: " + assistantActions.size() + ")");
         var function = actions.get(name);
         if (function == null) {
-            LOG.info("[DevConsoleManager] INVOKE [" + Thread.currentThread().getName() + "] action '" + name
-                    + "' NOT FOUND in actions, checking assistant actions...");
             // Try assistant actions
             var bifunction = assistantActions.get(name);
             if (bifunction != null) {
-                LOG.info("[DevConsoleManager] INVOKE [" + Thread.currentThread().getName() + "] found '" + name
-                        + "' in assistant actions");
                 Object assistant = DevConsoleManager.getGlobal(DEV_MANAGER_GLOBALS_ASSISTANT);
                 if (assistant != null) {
                     return (T) bifunction.apply(assistant, params);
@@ -183,15 +176,9 @@ public class DevConsoleManager {
                     throw new RuntimeException("Assistant not available");
                 }
             } else {
-                LOG.severe("[DevConsoleManager] INVOKE [" + Thread.currentThread().getName()
-                        + "] *** THROWING NoSuchElementException for '" + name + "' ***");
-                LOG.severe("[DevConsoleManager] Available actions: " + actions.keySet());
-                LOG.severe("[DevConsoleManager] Available assistant actions: " + assistantActions.keySet());
                 throw new NoSuchElementException(name);
             }
         } else {
-            LOG.info("[DevConsoleManager] INVOKE [" + Thread.currentThread().getName() + "] action '" + name
-                    + "' FOUND, executing");
             return (T) function.apply(params);
         }
     }

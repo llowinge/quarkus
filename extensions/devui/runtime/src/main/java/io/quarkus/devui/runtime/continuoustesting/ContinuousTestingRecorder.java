@@ -25,7 +25,14 @@ public class ContinuousTestingRecorder {
         context.addShutdownTask(new Runnable() {
             @Override
             public void run() {
+                LOG.info("[ContinuousTestingRecorder] SHUTDOWN TASK [" + Thread.currentThread().getName()
+                        + "] - removing listener");
                 ContinuousTestingSharedStateManager.removeStateListener(continuousTestingJsonRPCService);
+                // Note: State reset is handled in DevConsoleManager.close() to ensure it happens
+                // only during actual dev mode restarts between test classes, not during normal shutdowns.
+                // See https://github.com/apache/camel-quarkus/issues/8318
+                LOG.info("[ContinuousTestingRecorder] SHUTDOWN TASK COMPLETE [" + Thread.currentThread().getName()
+                        + "] - listener removed");
             }
         });
         LOG.info(
