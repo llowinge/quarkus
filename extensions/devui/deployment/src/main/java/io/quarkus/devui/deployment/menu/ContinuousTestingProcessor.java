@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.logging.Logger;
 
 import io.quarkus.arc.deployment.BeanContainerBuildItem;
 import io.quarkus.deployment.IsLocalDevelopment;
@@ -27,6 +28,7 @@ import io.quarkus.devui.spi.page.Page;
  * This creates Continuous Testing Page
  */
 public class ContinuousTestingProcessor {
+    private static final Logger LOG = Logger.getLogger(ContinuousTestingProcessor.class.getName());
 
     @Record(ExecutionTime.RUNTIME_INIT)
     @BuildStep(onlyIf = IsLocalDevelopment.class)
@@ -68,6 +70,9 @@ public class ContinuousTestingProcessor {
     void registerBuildTimeActions(LaunchModeBuildItem launchModeBuildItem,
             BuildProducer<BuildTimeActionBuildItem> buildTimeActionProducer) {
 
+        LOG.info("[ContinuousTestingProcessor] REGISTER_BUILD_TIME_ACTIONS START [" + Thread.currentThread().getName()
+                + "] - BUILD phase starting to register all continuous testing actions");
+
         BuildTimeActionBuildItem actions = new BuildTimeActionBuildItem(NAMESPACE);
 
         registerStartMethod(launchModeBuildItem, actions);
@@ -79,7 +84,12 @@ public class ContinuousTestingProcessor {
         registerGetResultsMethod(launchModeBuildItem, actions);
         registerGetResultsMCPMethod(launchModeBuildItem, actions);
         registerGetStatusMethod(launchModeBuildItem, actions);
+
+        LOG.info("[ContinuousTestingProcessor] REGISTER_BUILD_TIME_ACTIONS PRODUCING [" + Thread.currentThread().getName()
+                + "] - about to produce BuildTimeActionBuildItem with all actions");
         buildTimeActionProducer.produce(actions);
+        LOG.info("[ContinuousTestingProcessor] REGISTER_BUILD_TIME_ACTIONS COMPLETE [" + Thread.currentThread().getName()
+                + "] - BuildTimeActionBuildItem produced, actions will be registered in DevConsoleManager");
     }
 
     @BuildStep(onlyIf = IsLocalDevelopment.class)
@@ -263,12 +273,16 @@ public class ContinuousTestingProcessor {
     }
 
     private void registerGetResultsMethod(LaunchModeBuildItem launchModeBuildItem, BuildTimeActionBuildItem actions) {
+        LOG.info("[ContinuousTestingProcessor] REGISTER_GET_RESULTS_METHOD [" + Thread.currentThread().getName()
+                + "] - BUILD phase registering devui-continuous-testing_getResults");
         actions.actionBuilder()
                 .methodName("getResults")
                 .function(ignored -> {
                     return continuousTestingResults(launchModeBuildItem);
                 })
                 .build();
+        LOG.info("[ContinuousTestingProcessor] REGISTER_GET_RESULTS_METHOD COMPLETE ["
+                + Thread.currentThread().getName() + "] - action will be registered in DevConsoleManager");
     }
 
     /**

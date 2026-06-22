@@ -257,6 +257,9 @@ public class BuildTimeContentProcessor {
             CurateOutcomeBuildItem curateOutcomeBuildItem,
             Capabilities capabilities) {
 
+        log.info("[BuildTimeContentProcessor] MAP_DEPLOYMENT_METHODS START [" + Thread.currentThread().getName()
+                + "] - Processing " + buildTimeActions.size() + " BuildTimeActionBuildItem(s) to register actions");
+
         final boolean assistantIsAvailable = capabilities.isPresent(Capability.ASSISTANT);
 
         Map<String, DeploymentJsonRpcMethod> methods = new HashMap<>();
@@ -304,6 +307,10 @@ public class BuildTimeContentProcessor {
                 recordedSubscriptions.put(fullName, recordedJsonRpcSubscription);
             }
         }
+
+        log.info("[BuildTimeContentProcessor] MAP_DEPLOYMENT_METHODS COMPLETE [" + Thread.currentThread().getName()
+                + "] - Registered " + methods.size() + " methods, " + subscriptions.size() + " subscriptions, "
+                + recordedMethods.size() + " recorded methods, " + recordedSubscriptions.size() + " recorded subscriptions");
 
         return new DeploymentMethodBuildItem(methods, subscriptions, recordedMethods, recordedSubscriptions);
     }

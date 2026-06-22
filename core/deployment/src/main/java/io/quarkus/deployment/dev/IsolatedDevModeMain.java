@@ -190,11 +190,17 @@ public class IsolatedDevModeMain implements BiConsumer<CuratedApplication, Map<S
     }
 
     public synchronized void restartApp(Set<String> changedResources, ClassChangeInformation classChangeInformation) {
+        log.info("[IsolatedDevModeMain] RESTART_APP START [" + Thread.currentThread().getName()
+                + "] - beginning restart sequence");
         restarting = true;
         if (consoleContext != null) {
             consoleContext.reset();
         }
+        log.info("[IsolatedDevModeMain] CALLING STOP [" + Thread.currentThread().getName()
+                + "] - this will call DevConsoleManager.close()");
         stop();
+        log.info("[IsolatedDevModeMain] STOP COMPLETE [" + Thread.currentThread().getName()
+                + "] - DevConsoleManager actions should be cleared now");
         Timing.restart(curatedApplication.getOrCreateAugmentClassLoader());
         deploymentProblem.set(null);
         ClassLoader old = Thread.currentThread().getContextClassLoader();
@@ -202,9 +208,14 @@ public class IsolatedDevModeMain implements BiConsumer<CuratedApplication, Map<S
 
             //ok, we have resolved all the deps
             try {
+                log.info("[IsolatedDevModeMain] RELOAD_EXISTING_APPLICATION START ["
+                        + Thread.currentThread().getName() + "] - BUILD and RUNTIME_INIT will run");
                 StartupAction start = augmentAction.reloadExistingApplication(firstStartCompleted, changedResources,
                         classChangeInformation);
+                log.info("[IsolatedDevModeMain] RELOAD_EXISTING_APPLICATION COMPLETE ["
+                        + Thread.currentThread().getName() + "] - running main class");
                 runner = start.runMainClass(context.getArgs());
+                log.info("[IsolatedDevModeMain] RUN_MAIN_CLASS COMPLETE [" + Thread.currentThread().getName() + "]");
                 if (!firstStartCompleted) {
                     notifyListenersAfterStart();
                     firstStartCompleted = true;
@@ -224,6 +235,8 @@ public class IsolatedDevModeMain implements BiConsumer<CuratedApplication, Map<S
         } finally {
             restarting = false;
             Thread.currentThread().setContextClassLoader(old);
+            log.info("[IsolatedDevModeMain] RESTART_APP COMPLETE [" + Thread.currentThread().getName()
+                    + "] - restart sequence finished");
         }
     }
 

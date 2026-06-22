@@ -3,8 +3,10 @@ package io.quarkus.dev.testing;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.logging.Logger;
 
 public class ContinuousTestingSharedStateManager {
+    private static final Logger LOG = Logger.getLogger(ContinuousTestingSharedStateManager.class.getName());
 
     private static final CopyOnWriteArraySet<Consumer<State>> stateListeners = new CopyOnWriteArraySet<>();
     public static final State INITIAL_STATE = new StateBuilder()
@@ -12,9 +14,22 @@ public class ContinuousTestingSharedStateManager {
     private static volatile State lastState = INITIAL_STATE;
 
     public static void addStateListener(Consumer<State> stateListener) {
+        LOG.info(
+                "[ContinuousTestingSharedStateManager] ADD_LISTENER [" + Thread.currentThread().getName() + "] listener="
+                        + stateListener.getClass().getName() + " (total listeners: " + (stateListeners.size() + 1) + ")");
+        LOG.info("[ContinuousTestingSharedStateManager] lastState="
+                + (lastState != null ? "NOT NULL (lastRun=" + lastState.lastRun + ", inProgress=" + lastState.inProgress + ")"
+                        : "NULL"));
         stateListeners.add(stateListener);
         if (lastState != null) {
+            LOG.info("[ContinuousTestingSharedStateManager] IMMEDIATE CALLBACK [" + Thread.currentThread().getName()
+                    + "] calling listener.accept() with lastState");
             stateListener.accept(lastState);
+            LOG.info("[ContinuousTestingSharedStateManager] IMMEDIATE CALLBACK COMPLETE ["
+                    + Thread.currentThread().getName() + "]");
+        } else {
+            LOG.info("[ContinuousTestingSharedStateManager] NO IMMEDIATE CALLBACK ["
+                    + Thread.currentThread().getName() + "] lastState is null");
         }
     }
 

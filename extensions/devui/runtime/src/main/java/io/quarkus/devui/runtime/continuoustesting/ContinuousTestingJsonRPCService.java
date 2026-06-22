@@ -9,6 +9,8 @@ import java.util.function.Consumer;
 
 import jakarta.enterprise.context.ApplicationScoped;
 
+import org.jboss.logging.Logger;
+
 import io.quarkus.dev.console.DevConsoleManager;
 import io.quarkus.dev.testing.ContinuousTestingSharedStateManager;
 import io.quarkus.dev.testing.results.TestResultInterface;
@@ -23,6 +25,7 @@ import io.smallrye.mutiny.operators.multi.processors.BroadcastProcessor;
 
 @ApplicationScoped
 public class ContinuousTestingJsonRPCService implements Consumer<ContinuousTestingSharedStateManager.State> {
+    private static final Logger LOG = Logger.getLogger(ContinuousTestingJsonRPCService.class);
 
     private final BroadcastProcessor<ContinuousTestingJsonRPCState> stateBroadcaster = BroadcastProcessor.create();
 
@@ -30,7 +33,13 @@ public class ContinuousTestingJsonRPCService implements Consumer<ContinuousTesti
 
     @Override
     public void accept(final ContinuousTestingSharedStateManager.State state) {
+        LOG.info(
+                "[ContinuousTestingJsonRPCService] ACCEPT START [" + Thread.currentThread().getName() + "] state=" + state);
+        LOG.info("[ContinuousTestingJsonRPCService] ABOUT TO INVOKE [" + Thread.currentThread().getName()
+                + "] devui-continuous-testing_getResults");
         final var results = DevConsoleManager.<TestRunResultsInterface> invoke("devui-continuous-testing_getResults");
+        LOG.info("[ContinuousTestingJsonRPCService] INVOKE RETURNED [" + Thread.currentThread().getName()
+                + "] results=" + (results != null ? "NOT NULL" : "NULL"));
         final List<Item> passedTests = new LinkedList<>();
         final List<Item> failedTests = new LinkedList<>();
         final List<Item> skippedTests = new LinkedList<>();
