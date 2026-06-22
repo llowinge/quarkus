@@ -10,6 +10,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 import io.quarkus.dev.spi.HotReplacementContext;
+import io.quarkus.dev.testing.ContinuousTestingSharedStateManager;
 
 public class DevConsoleManager {
     public static volatile String DEV_MANAGER_GLOBALS_ASSISTANT = "_assistant";
@@ -101,6 +102,10 @@ public class DevConsoleManager {
         actions.clear();
         assistantActions.clear();
         globals.clear();
+
+        // Reset continuous testing state when dev mode restarts between test classes.
+        // This prevents immediate callback in RUNTIME_INIT from invoking actions before BUILD phase completes.
+        ContinuousTestingSharedStateManager.reset();
     }
 
     /**
