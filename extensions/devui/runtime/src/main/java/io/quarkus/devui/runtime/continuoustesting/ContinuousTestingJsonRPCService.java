@@ -30,7 +30,16 @@ public class ContinuousTestingJsonRPCService implements Consumer<ContinuousTesti
 
     @Override
     public void accept(final ContinuousTestingSharedStateManager.State state) {
-        final var results = DevConsoleManager.<TestRunResultsInterface> invoke("devui-continuous-testing_getResults");
+        // Don't invoke DevConsoleManager action if state is INITIAL_STATE (lastRun=-1).
+        // This happens during dev mode restart after shutdown task resets state.
+        // Invoking would fail with NoSuchElementException if BUILD phase hasn't registered actions yet.
+        final TestRunResultsInterface results;
+        if (state.lastRun > 0) {
+            results = DevConsoleManager.<TestRunResultsInterface> invoke("devui-continuous-testing_getResults");
+        } else {
+            results = null;
+        }
+
         final List<Item> passedTests = new LinkedList<>();
         final List<Item> failedTests = new LinkedList<>();
         final List<Item> skippedTests = new LinkedList<>();

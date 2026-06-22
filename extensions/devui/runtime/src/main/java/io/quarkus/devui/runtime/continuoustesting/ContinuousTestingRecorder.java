@@ -18,6 +18,8 @@ public class ContinuousTestingRecorder {
             @Override
             public void run() {
                 ContinuousTestingSharedStateManager.removeStateListener(continuousTestingJsonRPCService);
+                // Note: State reset is handled in DevConsoleManager.close() to ensure it happens
+                // only during actual dev mode restarts between test classes, not during normal shutdowns.
             }
         });
         return new RuntimeValue<>(continuousTestingJsonRPCService != null);
